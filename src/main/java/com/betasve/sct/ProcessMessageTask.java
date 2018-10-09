@@ -9,10 +9,16 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.task.configuration.EnableTask;
 import org.springframework.cloud.task.repository.TaskRepository;
 import org.springframework.context.annotation.Bean;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.retry.annotation.Retryable;
+
+import java.security.InvalidParameterException;
 
 @SpringBootApplication
 @EnableTask
-public class ProcessMessageTask{
+@EnableRetry
+public class ProcessMessageTask {
 	@Bean
 	public CommandLineRunner commandLineRunner() {
 		return new ProcessMessageCommandLineRunner();
@@ -30,14 +36,20 @@ public class ProcessMessageTask{
 		private TaskRepository taskRepository;
 
 		@Override
-		public void run(String... strings) {
+        @Retryable(
+            value = { InvalidParameterException.class },
+            maxAttempts = 4,
+            backoff = @Backoff(delay = 5000)
+        )
+        public void run(String... strings) {
+		    System.out.println("---- Retry!");
 			CmdMessageInput input = new CmdMessageInput(strings);
 			if (input.valid()) {
 				messageService.save(new Message(input.getType(), input.getPayload()));
 			} else {
 				System.out.println("The following problems occurred:");
 				input.getErrors().keySet().stream().forEach(
-					e -> System.out.println(e + ": " + input.getErrors().get(e))
+						e -> System.out.println(e + ": " + input.getErrors().get(e))
 				);
 			}
 		}

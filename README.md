@@ -29,6 +29,33 @@ To run the application execute:
 docker run -it --rm #{image_name} -type #{message_type(e.g. emotion or text)} -payload "#{some payload here"
 ```
 
+Docker container will automatically stop if the Cloud Task Test App exit code is `0` but if an exception is thrown
+the container will not stop. So using a `--rm` is recommended.
+
+### Failure persistence
+
+In order for the `Spring Cloud Task` to persist any failed tasks as such the `#run` method
+should throw an `Exception` regardless if its `catch`ed later or not.
+
+### Retry mechanism
+
+`Spring Retry 1.2.2.RELEASE` is used for the retry mechanism. [It](https://docs.spring.io/spring-batch/trunk/reference/html/retry.html)
+supports handle definitions for separate exception types, as well as `maxAttempts`, `backoff` period as well as exponential backoff with
+`multiplier` option.
+
+Current (sample) definition is:
+```
+@Retryable(
+    value = { InvalidParameterException.class },
+    maxAttempts = 4,
+    backoff = @Backoff(delay = 5000)
+)
+```
+which retries 4 times with a period of 5 seconds between retries.
+Only the last unsuccessful retry is logged as a failure in the DB.
+In order to log every try, a Persistent Retry Policy must be implemented.
+
+
 ### Project Reasoning
 
 **Spring Cloud Task aims to bring functionality required to support short lived microservices to Spring Boot based applications.**

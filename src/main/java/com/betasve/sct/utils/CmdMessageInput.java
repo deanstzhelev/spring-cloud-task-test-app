@@ -1,6 +1,8 @@
 package com.betasve.sct.utils;
 
 import org.apache.commons.cli.*;
+
+import java.security.InvalidParameterException;
 import java.util.HashMap;
 
 public class CmdMessageInput {
@@ -38,9 +40,15 @@ public class CmdMessageInput {
             return false;
         }
 
-        return optionSet.keySet()
+        boolean isValid = optionSet.keySet()
                 .stream()
                 .allMatch( e -> parsedOptions.hasOption(e) || addToErrors(e, "Missing key"));
+
+        if (isValid) {
+            return isValid;
+        } else {
+            throw new InvalidParameterException("Invalid params, bro");
+        }
     }
 
     public String getOption(String key) {
